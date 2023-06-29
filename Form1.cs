@@ -15,7 +15,12 @@ namespace Currency_Converter
     {
         private List<string> currencies1 = new List<string>
         {
-            "USD", "EUR", "GBP", "JPY", "AUD", "CAD" // и другие валюты...
+            "USD", "EUR", "UAN", "JPY", "AUD", "CAD", "RUB", "PLN"// и другие валюты...
+        };
+
+        private List<string> country = new List<string>
+        {
+            "United States of America", "Europe", "Ukraine", "Japan", "Austria", "Canada", "Russia", "Poland"
         };
 
         public Form1()
@@ -56,6 +61,7 @@ namespace Currency_Converter
                 selectedIndex = (selectedIndex + 1) % comboBox2.Items.Count; // Переход к следующему элементу в круговом порядке
                 comboBox2.SelectedIndex = selectedIndex;
             }
+            textBox3.Text = country[comboBox1.SelectedIndex];
         }
 
         private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
@@ -66,6 +72,7 @@ namespace Currency_Converter
                 selectedIndex = (selectedIndex + 1) % comboBox1.Items.Count; // Переход к следующему элементу в круговом порядке
                 comboBox1.SelectedIndex = selectedIndex;
             }
+            textBox4.Text = country[comboBox2.SelectedIndex];
         }
 
         private void CheckingForANumber(KeyPressEventArgs e)
@@ -75,5 +82,6 @@ namespace Currency_Converter
                 e.Handled = true; // Отменить ввод символа, если это не цифра или управляющий символ
             }
         }
+
     }
 }
