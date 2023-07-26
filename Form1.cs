@@ -16,6 +16,7 @@ using Newtonsoft.Json;
 using System.Globalization;
 using Newtonsoft.Json.Linq;
 using System.Data.Odbc;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Currency_Converter
 {
@@ -26,9 +27,8 @@ namespace Currency_Converter
         private const string apiURL = "https://v6.exchangerate-api.com/v6/da4eac743cccc395c19babfd/latest/USD";
         private DateTime lastRequestDate;
         private CurrencyConversionData apiData;
-        private string fileNameLaunchData = "launch_data1.json";
-        private string fileNameCurrencyData = "currency_data1.json";
-
+        private const string fileNameLaunchData = "launch_data.json";
+        private const string fileNameCurrencyData = "currency_data.json";
         private readonly List<string> currencies1 = new List<string>
         {
             "USD", "EUR", "UAH", "JPY", "AUD", "CAD", "RUB", "PLN"
@@ -40,22 +40,28 @@ namespace Currency_Converter
 
         public Form1()
         {
-            InitializeComponent();
+            try
+            {
+                InitializeComponent();
 
+                Load += Form1_Load;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error: {ex.Message}");
+            }
+        }
+
+        private async void Form1_Load(object sender, EventArgs e)
+        {
             comboBox1.Items.AddRange(currencies1.ToArray());
             comboBox2.Items.AddRange(currencies1.ToArray());
 
             textBox1.TextChanged += textBox1_TextChanged;
             textBox2.TextChanged += textBox2_TextChanged;
 
+            RequestAPI();
 
-            Load += Form1_Load;
-        }
-
-        private async void Form1_Load(object sender, EventArgs e)
-        {
-
-            // Добавление начального элемента в comboBox1 and comboBox2
             comboBox1.SelectedIndex = 0;
             comboBox2.SelectedIndex = 1;
 
@@ -64,21 +70,13 @@ namespace Currency_Converter
 
             CheckingForANumber(textBox1);
             CheckingForANumber(textBox2);
-
-            try
-            {
-                RequestAPI();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Произошла ошибка: {ex.Message}");
-            }
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)
         {
             Convert1();
         }
+
         private void textBox2_TextChanged(object sender, EventArgs e)
         {
             Convert2();
@@ -109,9 +107,15 @@ namespace Currency_Converter
         {
             textBox.KeyPress += (sender, e) =>
             {
-                if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
+                if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar) && e.KeyChar != '.')
                 {
-                    e.Handled = true; // Отменить ввод символа, если это не цифра или управляющий символ
+                    e.Handled = true; // Отменить ввод символа, если это не цифра, точка или управляющий символ
+                }
+
+                // Разрешить ввод точки только один раз и только если ее нет в текстовом поле
+                if (e.KeyChar == '.' && textBox.Text.Contains("."))
+                {
+                    e.Handled = true;
                 }
             };
         }
@@ -161,41 +165,76 @@ namespace Currency_Converter
 
         private void Convert1()
         {
-            double value1 = Convert.ToDouble(textBox1.Text);
+            textBox2.TextChanged -= textBox2_TextChanged;
 
-            Dictionary<string, double> conversionRates = apiData.conversion_rates;
+            if (decimal.TryParse(textBox1.Text, out decimal value1))
+            {
+                string originalValue1 = textBox1.Text;
 
-            double rate1 = conversionRates[comboBox1.Text];
-            double rate2 = conversionRates[comboBox2.Text];
+                Dictionary<string, decimal> conversionRates = apiData.conversion_rates;
+                string currency1 = comboBox1.Text;
+                string currency2 = comboBox2.Text;
 
-            double result = Math.Round(value1 / rate1 * rate2, 2);
+                if (conversionRates.TryGetValue(currency1, out decimal rate1) && conversionRates.TryGetValue(currency2, out decimal rate2))
+                {
+                    decimal result = (value1 / rate1) * rate2;
+                    string resultString = Math.Round(result, 3).ToString("0.000"); // Округляем до тысячных после запятой
+                    textBox2.Text = resultString;
+                    textBox1.Text = originalValue1;
+                }
+            }
+            else
+            {
+                textBox2.Text = "";
+            }
 
-            textBox2.Text = Convert.ToString(result);
+            textBox2.TextChanged += textBox2_TextChanged;
         }
         private void Convert2()
         {
-            double value2 = Convert.ToDouble(textBox2.Text);
+            textBox1.TextChanged -= textBox1_TextChanged;
 
-            Dictionary<string, double> conversionRates = apiData.conversion_rates;
+            if (decimal.TryParse(textBox2.Text, out decimal value2))
+            {
+                string originalValue2 = textBox2.Text;
 
-            double rate1 = conversionRates[comboBox1.Text];
-            double rate2 = conversionRates[comboBox2.Text];
+                Dictionary<string, decimal> conversionRates = apiData.conversion_rates;
+                string currency1 = comboBox1.Text;
+                string currency2 = comboBox2.Text;
 
-            double result = Math.Round(value2 / rate2 * rate1,2);
+                if (conversionRates.TryGetValue(currency1, out decimal rate1) && conversionRates.TryGetValue(currency2, out decimal rate2))
+                {
+                    if (rate2 != 0)
+                    {
+                        decimal result = (value2 / rate2) * rate1;
+                        string resultString = Math.Round(result, 3).ToString("0.000"); // Округляем до тысячных после запятой
+                        textBox1.Text = resultString;
+                    }
+                    else
+                    {
+                        textBox1.Text = "";
+                    }
+                }
 
-            textBox1.Text = Convert.ToString(result);
+                textBox2.Text = originalValue2;
+            }
+            else
+            {
+                textBox1.Text = "";
+            }
+
+            textBox1.TextChanged += textBox1_TextChanged;
         }
 
-        private void RequestAPI()
+        private async void RequestAPI()
         {
-            if (!File.Exists(fileNameLaunchData))
+            if (!File.Exists(fileNameLaunchData) || !File.Exists(fileNameCurrencyData) )
             {
-                
                 var launchData = new { LaunchDate = DateTime.Now };
                 string jsonLaunchData = JsonConvert.SerializeObject(launchData);
                 File.WriteAllText(fileNameLaunchData, jsonLaunchData);
 
-                apiData = GetCurrencyConversionData(apiKey, apiURL).Result;
+                apiData = await GetCurrencyConversionData(apiKey, apiURL);
                 string jsonCurrencyData = JsonConvert.SerializeObject(apiData);
                 File.WriteAllText(fileNameCurrencyData, jsonCurrencyData);
             }
@@ -207,7 +246,7 @@ namespace Currency_Converter
 
                 if ((DateTime.Now - lastRequestDate).TotalHours >= 24)
                 {
-                    apiData = GetCurrencyConversionData(apiKey, apiURL).Result;
+                    apiData = await GetCurrencyConversionData(apiKey, apiURL);
                     lastRequestDate = DateTime.Now;
 
                     // Сохраняем данные о курсах валют и время последнего запроса
@@ -220,7 +259,6 @@ namespace Currency_Converter
                 }
             }
         }
-
         private void SaveCurrencyData() 
         {
             string jsonCurrencyData = JsonConvert.SerializeObject(apiData);
@@ -229,10 +267,12 @@ namespace Currency_Converter
             File.WriteAllText(fileNameLaunchData, jsonLaunchData);
             File.WriteAllText(fileNameCurrencyData, jsonCurrencyData);
         }
+
     }
+
     public class CurrencyConversionData
     {
-        public Dictionary<string, double> conversion_rates { get; set; }
+        public Dictionary<string, decimal> conversion_rates { get; set; }
     }
 
     public class LaunchData
