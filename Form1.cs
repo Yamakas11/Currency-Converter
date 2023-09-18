@@ -9,8 +9,6 @@ using System.Windows.Forms;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Net;
-using System.Reflection;
-using System.Security.Cryptography;
 
 namespace Currency_Converter
 {
