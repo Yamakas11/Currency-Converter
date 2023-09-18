@@ -16,7 +16,7 @@ namespace Currency_Converter
     {
         private const ushort PanelRadius = 10;
         private const ushort HoursBetweenApiRequests = 24;
-        private const string ApiKey = "da4eac743cccc395c19babfd";
+        private const string ApiKey = "";
         private const string ApiURL = "https://v6.exchangerate-api.com/v6/da4eac743cccc395c19babfd/latest/USD";
         private const string LaunchDataFileName = "launch_data.json";
         private const string CurrencyDataFileName = "currency_data.json";
