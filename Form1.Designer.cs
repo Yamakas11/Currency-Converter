@@ -57,7 +57,7 @@
             // 
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label1.Location = new System.Drawing.Point(221, 25);
+            this.label1.Location = new System.Drawing.Point(262, 19);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(274, 36);
             this.label1.TabIndex = 0;
@@ -84,7 +84,7 @@
             this.panel2.Controls.Add(this.textBox6);
             this.panel2.Controls.Add(this.textBox2);
             this.panel2.Controls.Add(this.comboBox2);
-            this.panel2.Location = new System.Drawing.Point(415, 189);
+            this.panel2.Location = new System.Drawing.Point(407, 190);
             this.panel2.Name = "panel2";
             this.panel2.Size = new System.Drawing.Size(317, 100);
             this.panel2.TabIndex = 13;
@@ -132,7 +132,7 @@
             this.panel1.Controls.Add(this.textBox5);
             this.panel1.Controls.Add(this.textBox1);
             this.panel1.Controls.Add(this.comboBox1);
-            this.panel1.Location = new System.Drawing.Point(38, 189);
+            this.panel1.Location = new System.Drawing.Point(50, 190);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(317, 100);
             this.panel1.TabIndex = 12;
@@ -181,7 +181,7 @@
             this.panel3.Controls.Add(this.pictureBox1);
             this.panel3.Controls.Add(this.textBox8);
             this.panel3.Controls.Add(this.comboBox3);
-            this.panel3.Location = new System.Drawing.Point(38, 91);
+            this.panel3.Location = new System.Drawing.Point(12, 90);
             this.panel3.Name = "panel3";
             this.panel3.Size = new System.Drawing.Size(317, 92);
             this.panel3.TabIndex = 14;
@@ -213,7 +213,7 @@
             this.panel4.Controls.Add(this.pictureBox2);
             this.panel4.Controls.Add(this.textBox3);
             this.panel4.Controls.Add(this.comboBox4);
-            this.panel4.Location = new System.Drawing.Point(415, 91);
+            this.panel4.Location = new System.Drawing.Point(441, 90);
             this.panel4.Name = "panel4";
             this.panel4.Size = new System.Drawing.Size(317, 92);
             this.panel4.TabIndex = 17;
@@ -258,7 +258,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(761, 362);
+            this.ClientSize = new System.Drawing.Size(770, 333);
             this.Controls.Add(this.panel4);
             this.Controls.Add(this.panel3);
             this.Controls.Add(this.panel2);

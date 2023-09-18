@@ -9,24 +9,25 @@ using System.Windows.Forms;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Net;
+using System.Reflection;
+using System.Security.Cryptography;
 
 namespace Currency_Converter
 {
-
-
     public partial class Form1 : Form
     {
-        private const ushort radiusForPanel = 10;
-        private const string apiKey = "da4eac743cccc395c19babfd";
-        private const string apiURL = "https://v6.exchangerate-api.com/v6/da4eac743cccc395c19babfd/latest/USD";
-        private DateTime lastRequestDate;
-        private CurrencyConversionData apiData;
-        private const string fileNameLaunchData = "launch_data.json";
-        private const string fileNameCurrencyData = "currency_data.json";
-        private const string jsonFileCountriesAndCurrencies = @"C:\app\Currency Converter\jsconfig1.json";
-        private const string jsonFileCountriesAndCodes = @"C:\app\Currency Converter\jsconfig2.json";
-        private CountriesAndCurrencies countriesAndCurrencies;
-        private CountriesAndCodes countriesCodes;
+        private const ushort PanelRadius = 10;
+        private const ushort HoursBetweenApiRequests = 24;
+        private const string ApiKey = "da4eac743cccc395c19babfd";
+        private const string ApiURL = "https://v6.exchangerate-api.com/v6/da4eac743cccc395c19babfd/latest/USD";
+        private const string LaunchDataFileName = "launch_data.json";
+        private const string CurrencyDataFileName = "currency_data.json";
+        private const string CountriesAndCodesFilePath = @"C:\app\Currency Converter\jsconfig2.json";
+        private const string CountriesAndCurrenciesFilePath = @"C:\app\Currency Converter\jsconfig1.json";
+        private DateTime LastRequestTimestamp;
+        private CurrencyConversionData ApiData;
+        private CountriesAndCodes CountryCodesData;
+        private CountriesAndCurrencies CountryAndCurrencyData;
 
         public Form1()
         {
@@ -39,28 +40,23 @@ namespace Currency_Converter
         {
             try
             {
-                LoadCountriesAndCurrenciesData();
-                AddCurrencyToCombobox(comboBox1);
-                AddCurrencyToCombobox(comboBox2);
+                // Вызываем методы и настраиваем элементы управления
+                InitializeUIElements();
 
-                comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged_1;
-                comboBox2.SelectedIndexChanged += comboBox2_SelectedIndexChanged;
+                // Настраиваем обработчики событий для комбобоксов
+                InitializeComboBoxEventHandlers();
 
-                AddElementsToCombobox(comboBox3);
-                AddElementsToCombobox(comboBox4);
+                // Настраиваем обработчики событий для текстовых полей
+                InitializeTextBoxEventHandlers();
 
-                textBox1.TextChanged += textBox1_TextChanged;
-                textBox2.TextChanged += textBox2_TextChanged;
+                // Запрашиваем данные с API
+                RequestCurrencyData();
 
-                RequestAPI();
+                // Производим начальные настройки
+                InitializeDefaults();
 
-                comboBox1.SelectedIndex = 0;
-                comboBox2.SelectedIndex = 1;
-
-                CornerRounding(panel1);
-                CornerRounding(panel2);
-                CornerRounding(panel3);
-                CornerRounding(panel4);
+                // Применяем закругление углов к панелям
+                ApplyCornerRounding();
 
                 CheckingForANumber(textBox1);
                 CheckingForANumber(textBox2);
@@ -72,10 +68,54 @@ namespace Currency_Converter
             }
         }
 
+        private void InitializeUIElements()
+        {
+            LoadCountriesAndCurrenciesData();
+            AddCurrencyToCombobox(comboBox1);
+            AddCurrencyToCombobox(comboBox2);
+
+            AddElementsToCombobox(comboBox3);
+            AddElementsToCombobox(comboBox4);
+        }
+
+        private void RequestCurrencyData()
+        {
+            RequestAPI();
+        }
+
+        private void InitializeDefaults()
+        {
+            comboBox1.SelectedIndex = 0;
+            comboBox2.SelectedIndex = 1;
+        }
+
+        private void ApplyCornerRounding()
+        {
+            CornerRounding(panel1);
+            CornerRounding(panel2);
+            CornerRounding(panel3);
+            CornerRounding(panel4);
+        }
+
+        private void InitializeTextBoxEventHandlers()
+        {
+            textBox1.TextChanged += textBox1_TextChanged;
+            textBox2.TextChanged += textBox2_TextChanged;
+        }
+
+        private void InitializeComboBoxEventHandlers()
+        {
+            comboBox1.SelectedIndexChanged += comboBox1_SelectedIndexChanged;
+            comboBox2.SelectedIndexChanged += comboBox2_SelectedIndexChanged;
+        }
+
+        /// <summary>
+        /// Initializes data about currencies and countries.
+        /// </summary>
         private void LoadCountriesAndCurrenciesData()
         {
-            string jsonData = File.ReadAllText(jsonFileCountriesAndCurrencies);
-            countriesAndCurrencies = JsonConvert.DeserializeObject<CountriesAndCurrencies>(jsonData);
+            string jsonData = File.ReadAllText(CountriesAndCurrenciesFilePath);
+            CountryAndCurrencyData = JsonConvert.DeserializeObject<CountriesAndCurrencies>(jsonData);
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)
@@ -87,29 +127,19 @@ namespace Currency_Converter
             Convert2();
         }
 
-        private void comboBox1_SelectedIndexChanged_1(object sender, EventArgs e)
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateCountryByCurrency(comboBox1, comboBox3);
 
             // We change the currency index if the currencies in our comboboxes match.
-            if (comboBox1.SelectedIndex == comboBox2.SelectedIndex)
-            {
-                int selectedIndex = comboBox2.SelectedIndex;
-                selectedIndex = (selectedIndex + 1) % comboBox2.Items.Count;
-                comboBox2.SelectedIndex = selectedIndex;
-            }
+            UpdateComboBoxIndexToAvoidMatch(comboBox1, comboBox2);
         }
         private void comboBox2_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateCountryByCurrency(comboBox2, comboBox4);
 
             // We change the currency index if the currencies in our comboboxes match.
-            if (comboBox1.SelectedIndex == comboBox2.SelectedIndex)
-            {
-                int selectedIndex = comboBox1.SelectedIndex;
-                selectedIndex = (selectedIndex + 1) % comboBox1.Items.Count;
-                comboBox1.SelectedIndex = selectedIndex;
-            }
+            UpdateComboBoxIndexToAvoidMatch(comboBox2, comboBox1);
         }
 
         /// <summary>
@@ -158,10 +188,10 @@ namespace Currency_Converter
         {
             // Создание региона с закругленными углами
             System.Drawing.Drawing2D.GraphicsPath path = new System.Drawing.Drawing2D.GraphicsPath();
-            path.AddArc(0, 0, radiusForPanel, radiusForPanel, 180, 90); // Левый верхний угол
-            path.AddArc(panel.Width - radiusForPanel, 0, radiusForPanel, radiusForPanel, 270, 90); // Правый верхний угол
-            path.AddArc(panel.Width - radiusForPanel, panel.Height - radiusForPanel, radiusForPanel, radiusForPanel, 0, 90); // Правый нижний угол
-            path.AddArc(0, panel.Height - radiusForPanel, radiusForPanel, radiusForPanel, 90, 90); // Левый нижний угол
+            path.AddArc(0, 0, PanelRadius, PanelRadius, 180, 90); // Левый верхний угол
+            path.AddArc(panel.Width - PanelRadius, 0, PanelRadius, PanelRadius, 270, 90); // Правый верхний угол
+            path.AddArc(panel.Width - PanelRadius, panel.Height - PanelRadius, PanelRadius, PanelRadius, 0, 90); // Правый нижний угол
+            path.AddArc(0, panel.Height - PanelRadius, PanelRadius, PanelRadius, 90, 90); // Левый нижний угол
             path.CloseFigure();
             panel.Region = new Region(path);
         }
@@ -206,7 +236,7 @@ namespace Currency_Converter
             {
                 string originalValue1 = textBox1.Text;
 
-                Dictionary<string, decimal> conversionRates = apiData.conversion_rates;
+                Dictionary<string, decimal> conversionRates = ApiData.conversion_rates;
                 string currency1 = comboBox1.Text;
                 string currency2 = comboBox2.Text;
 
@@ -236,7 +266,7 @@ namespace Currency_Converter
             {
                 string originalValue2 = textBox2.Text;
 
-                Dictionary<string, decimal> conversionRates = apiData.conversion_rates;
+                Dictionary<string, decimal> conversionRates = ApiData.conversion_rates;
                 string currency1 = comboBox1.Text;
                 string currency2 = comboBox2.Text;
 
@@ -270,34 +300,34 @@ namespace Currency_Converter
         /// </summary>
         private async void RequestAPI()
         {
-            if (!File.Exists(fileNameLaunchData) || !File.Exists(fileNameCurrencyData))
+            if (!File.Exists(LaunchDataFileName) || !File.Exists(CurrencyDataFileName))
             {
                 var launchData = new { LaunchDate = DateTime.Now };
                 string jsonLaunchData = JsonConvert.SerializeObject(launchData);
-                File.WriteAllText(fileNameLaunchData, jsonLaunchData);
+                File.WriteAllText(LaunchDataFileName, jsonLaunchData);
 
-                apiData = await GetCurrencyConversionData(apiKey, apiURL);
-                string jsonCurrencyData = JsonConvert.SerializeObject(apiData);
-                File.WriteAllText(fileNameCurrencyData, jsonCurrencyData);
+                ApiData = await GetCurrencyConversionData(ApiKey, ApiURL);
+                string jsonCurrencyData = JsonConvert.SerializeObject(ApiData);
+                File.WriteAllText(CurrencyDataFileName, jsonCurrencyData);
             }
             else
             {
-                string jsonLaunchData = File.ReadAllText(fileNameLaunchData);
+                string jsonLaunchData = File.ReadAllText(LaunchDataFileName);
                 var launchData = JsonConvert.DeserializeObject<LaunchData>(jsonLaunchData);
-                lastRequestDate = launchData.LaunchDate;
+                LastRequestTimestamp = launchData.LaunchDate;
 
-                if ((DateTime.Now - lastRequestDate).TotalHours >= 24)
+                if ((DateTime.Now - LastRequestTimestamp).TotalHours >= HoursBetweenApiRequests)
                 {
-                    apiData = await GetCurrencyConversionData(apiKey, apiURL);
-                    lastRequestDate = DateTime.Now;
+                    ApiData = await GetCurrencyConversionData(ApiKey, ApiURL);
+                    LastRequestTimestamp = DateTime.Now;
 
                     // Сохраняем данные о курсах валют и время последнего запроса
                     SaveCurrencyData();
                 }
                 else
                 {
-                    string jsonCurrencyData = File.ReadAllText(fileNameCurrencyData);
-                    apiData = JsonConvert.DeserializeObject<CurrencyConversionData>(jsonCurrencyData);
+                    string jsonCurrencyData = File.ReadAllText(CurrencyDataFileName);
+                    ApiData = JsonConvert.DeserializeObject<CurrencyConversionData>(jsonCurrencyData);
                 }
             }
         }
@@ -306,11 +336,11 @@ namespace Currency_Converter
         /// </summary>
         private void SaveCurrencyData()
         {
-            string jsonCurrencyData = JsonConvert.SerializeObject(apiData);
-            var launchData = new LaunchData { LaunchDate = lastRequestDate };
+            string jsonCurrencyData = JsonConvert.SerializeObject(ApiData);
+            var launchData = new LaunchData { LaunchDate = LastRequestTimestamp };
             string jsonLaunchData = JsonConvert.SerializeObject(launchData);
-            File.WriteAllText(fileNameLaunchData, jsonLaunchData);
-            File.WriteAllText(fileNameCurrencyData, jsonCurrencyData);
+            File.WriteAllText(LaunchDataFileName, jsonLaunchData);
+            File.WriteAllText(CurrencyDataFileName, jsonCurrencyData);
         }
 
         private void comboBox3_SelectedIndexChanged(object sender, EventArgs e)
@@ -322,13 +352,13 @@ namespace Currency_Converter
 
                 UpdateCurrencyByCountry(comboBox3, comboBox1);
 
-                string jsonContent = File.ReadAllText(jsonFileCountriesAndCodes);
+                string jsonContent = File.ReadAllText(CountriesAndCodesFilePath);
 
-                countriesCodes = JsonConvert.DeserializeObject<CountriesAndCodes>(jsonContent);
+                CountryCodesData = JsonConvert.DeserializeObject<CountriesAndCodes>(jsonContent);
 
                 string selectedCountry = comboBox3.SelectedItem?.ToString(); // Добавляем ?. для безопасного доступа*
 
-                if (!string.IsNullOrEmpty(selectedCountry) && countriesCodes.countriesAndCodes.TryGetValue(selectedCountry, out string countryCode))
+                if (!string.IsNullOrEmpty(selectedCountry) && CountryCodesData.countriesAndCodes.TryGetValue(selectedCountry, out string countryCode))
                 {
                     string flagURL = $"https://flagsapi.com/{countryCode.ToUpper()}/shiny/48.png";
 
@@ -336,6 +366,13 @@ namespace Currency_Converter
                     {
                         byte[] imageData = client.DownloadData(flagURL);
                         pictureBox1.Image = Image.FromStream(new MemoryStream(imageData));
+                    }
+                }
+                else if (selectedCountry == "Europa")
+                {
+                    using(WebClient client = new WebClient())
+                    {
+                        pictureBox1.Image = Properties.Resources.European_Union_Flag;
                     }
                 }
             }
@@ -348,19 +385,14 @@ namespace Currency_Converter
         {
             try
             {
-                
                 comboBox4.AutoCompleteSource = AutoCompleteSource.ListItems;
                 comboBox4.AutoCompleteMode = AutoCompleteMode.None;
 
                 UpdateCurrencyByCountry(comboBox4, comboBox2);
 
-                string jsonContent = File.ReadAllText(jsonFileCountriesAndCodes);
-
-                countriesCodes = JsonConvert.DeserializeObject<CountriesAndCodes>(jsonContent);
-
                 string selectedCountry = comboBox4.SelectedItem?.ToString(); // Добавляем ?. для безопасного доступа*
 
-                if (!string.IsNullOrEmpty(selectedCountry) && countriesCodes.countriesAndCodes.TryGetValue(selectedCountry, out string countryCode))
+                if (!string.IsNullOrEmpty(selectedCountry) && CountryCodesData.countriesAndCodes.TryGetValue(selectedCountry, out string countryCode))
                 {
                     string flagURL = $"https://flagsapi.com/{countryCode.ToUpper()}/shiny/48.png";
 
@@ -369,6 +401,15 @@ namespace Currency_Converter
                         byte[] imageData = client.DownloadData(flagURL);
                         pictureBox2.Image = Image.FromStream(new MemoryStream(imageData));
                     }
+                }
+                else if (selectedCountry == "Europa")
+                {
+                    pictureBox2.Image = Properties.Resources.European_Union_Flag;
+                }
+                else
+                {
+                    // Если выбрано несуществующее или неопределенное значение, можно очистить изображение в PictureBox.
+                    pictureBox2.Image = null;
                 }
             }
             catch (Exception ex)
@@ -379,7 +420,7 @@ namespace Currency_Converter
 
         private void AddCurrencyToCombobox(ComboBox combobox)
         {
-            string json = File.ReadAllText(jsonFileCountriesAndCurrencies);
+            string json = File.ReadAllText(CountriesAndCurrenciesFilePath);
 
             var keyValuePairs = JObject.Parse(json);
             JObject countriesAndCurrencies = keyValuePairs["countriesAndCurrencies"].ToObject<JObject>();
@@ -418,7 +459,7 @@ namespace Currency_Converter
 
         private string GetCountryByCurrency(string currency)
         {
-            var pair = countriesAndCurrencies.countriesAndCurrencies.FirstOrDefault(kv => kv.Value == currency);
+            var pair = CountryAndCurrencyData.countriesAndCurrencies.FirstOrDefault(kv => kv.Value == currency);
             if (!string.IsNullOrEmpty(pair.Key))
             {
                 return pair.Key;
@@ -428,21 +469,30 @@ namespace Currency_Converter
 
         private string GetCurrencyByCountry(string country)
         {
-            if (countriesAndCurrencies.countriesAndCurrencies.TryGetValue(country, out string currency))
+            if (CountryAndCurrencyData.countriesAndCurrencies.TryGetValue(country, out string currency))
             {
                 return currency;
             }
             return null;
         }
 
-
         private void AddElementsToCombobox(ComboBox comboBox)
         {
-            KeyValuePair<string, string>[] countriesArray = countriesAndCurrencies.countriesAndCurrencies.ToArray();
+            KeyValuePair<string, string>[] countriesArray = CountryAndCurrencyData.countriesAndCurrencies.ToArray();
 
             foreach (var country in countriesArray)
             {
                 comboBox.Items.Add(country.Key);
+            }
+        }
+
+        private void UpdateComboBoxIndexToAvoidMatch(ComboBox firstComboBox,ComboBox secondComboBox)
+        {
+            if (firstComboBox.SelectedIndex == secondComboBox.SelectedIndex)
+            {
+                int selectedIndex = secondComboBox.SelectedIndex;
+                selectedIndex = (selectedIndex + 1) % secondComboBox.Items.Count;
+                secondComboBox.SelectedIndex = selectedIndex;
             }
         }
     }
